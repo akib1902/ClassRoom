@@ -4,12 +4,24 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEPARTMENTS_OPTIONS } from "@/constants";
 import { CreateButton } from "@/components/refine-ui/buttons/create";
+import { DataTable } from "@/components/refine-ui/data-table/data-table";
+import { useTable } from "@refinedev/react-table";
+import { Subject } from "@/types/index.ts";
 
 const SubjectsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all"); 
 
-  const subjecTable = useTable<Subject>();
+  const subjectTable = useTable<Subject>({
+    columns: [],
+    refineCoreProps: {
+      resource: "subjects",
+      pagination: {pageSize: 10, mode: "server"},
+      filters: {},
+      sorters: {},
+      }
+    }
+  );
   return (
     <ListView>
       <Breadcrumb />
@@ -43,5 +55,4 @@ const SubjectsList = () => {
     </ListView>
   );
 }
-
 export default SubjectsList;
