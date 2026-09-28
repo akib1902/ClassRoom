@@ -1,19 +1,29 @@
 import { ListView } from "@/components/refine-ui/views/list-view.tsx";
 import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb.tsx";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEPARTMENTS_OPTIONS } from "@/constants";
 import { CreateButton } from "@/components/refine-ui/buttons/create";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
 import { useTable } from "@refinedev/react-table";
+import { ColumnDef } from "@tanstack/react-table";
 import { Subject } from "@/types/index.ts";
+import { Badge } from "lucide-react";
 
 const SubjectsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all"); 
 
   const subjectTable = useTable<Subject>({
-    columns: [],
+    columns: useMemo<ColumnDef<Subject>[]>(() => [
+      {
+        id: "code",
+        accessorKey: "code",
+        size: 100,
+        header: () => <p className="Column-title ml-2">Code</p>,
+        cell: ({getValue}) => <Badge>{getValue<String>()}</Badge>
+      }
+    ], []),
     refineCoreProps: {
       resource: "subjects",
       pagination: {pageSize: 10, mode: "server"},
