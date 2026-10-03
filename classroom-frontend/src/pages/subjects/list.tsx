@@ -13,6 +13,12 @@ import { Badge } from "lucide-react";
 const SubjectsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all"); 
+  const departmentFilter = selectedDepartment === "all" ? [] : [
+    {field: 'department', operator: 'eq' as const, value: selectedDepartment}
+  ];
+  const searchFilters = searchQuery ? [
+    {field: 'name', operator: 'contains' as const, value: searchQuery}
+  ] : [];
 
   const subjectTable = useTable<Subject>({
     columns: useMemo<ColumnDef<Subject>[]>(() => [
@@ -22,12 +28,36 @@ const SubjectsList = () => {
         size: 100,
         header: () => <p className="Column-title ml-2">Code</p>,
         cell: ({getValue}) => <Badge>{getValue<String>()}</Badge>
+      },
+      {
+        id: "name",
+        accessorKey: "name",
+        size: 200,
+        header: () => <p className="Column-title ml-2">Name</p>,
+        cell: ({getValue}) => <span className="text-foreground">{getValue<String>()}</span>,
+        filterFn: 'includesString'
+      },
+      {
+        id: "department",
+        accessorKey: "department",
+        size: 150,
+        header: () => <p className="Column-title ml-2">Department</p>,
+        cell: ({getValue}) => <Badge className="text-foreground">{getValue<String>()}</Badge>
+      },
+      {
+        id: "description",
+        accessorKey: "description",
+        size: 300,
+        header: () => <p className="Column-title ml-2">Description</p>,
+        cell: ({getValue}) => <span className="truncate line-clamp-2">{getValue<String>()}</span>
       }
     ], []),
     refineCoreProps: {
       resource: "subjects",
       pagination: {pageSize: 10, mode: "server"},
-      filters: {},
+      filters: {
+        permanent: [...departmentFilter, ...searchFilters] 
+      },
       sorters: {},
       }
     }
