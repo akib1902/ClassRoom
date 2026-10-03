@@ -1,0 +1,16 @@
+19 sep
+installed refine framework & setup -> app.css tweakcn.com custom theme -> next day routing
+20th sep
+finished watching routing will finish the whole project tomorrow by doing
+21th sep
+
+
+
+3 October, 2026
+new start -> 2 proects to learn basic developments from roadmap.sh backend
+1. Database
+2. api
+3. caching
+4. theory (integration, ai assisted etc.)
+time req (10D) 3D with advance project with ai agents etc. till 13 oct project.
+-> advance backend with devops
