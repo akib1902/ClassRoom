@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { useForgotPassword, useRefineOptions, useLink } from "@refinedev/core";
+import { useForgotPassword, useLink } from "@refinedev/core";
+import { DrawMark } from "@/components/refine-ui/effects/draw-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +21,6 @@ export const ForgotPasswordForm = () => {
   const [email, setEmail] = useState("");
 
   const Link = useLink();
-
-  const { title } = useRefineOptions();
 
   const { mutate: forgotPassword } = useForgotPassword();
 
@@ -46,13 +45,8 @@ export const ForgotPasswordForm = () => {
       )}
     >
       <div className={cn("flex", "items-center", "justify-center", "gap-2")}>
-        {title.icon && (
-          <div
-            className={cn("text-foreground", "[&>svg]:w-12", "[&>svg]:h-12")}
-          >
-            {title.icon}
-          </div>
-        )}
+        <DrawMark className="size-11 text-primary" />
+        <span className="text-lg font-semibold tracking-tight">Classroom</span>
       </div>
 
       <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>

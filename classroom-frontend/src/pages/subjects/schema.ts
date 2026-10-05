@@ -46,3 +46,19 @@ export const subjectFormSchema = (
       values.code === ownCode || !takenCodes.includes(values.code),
     { path: ["code"], message: "This code is already in use" }
   );
+
+/**
+ * Completion ratio (0..1) for the progressive form-fill indicator:
+ * one point each for a valid code, a valid name, a department and a
+ * description.
+ */
+export const subjectProgress = (values: Partial<SubjectInput>): number => {
+  const checks = [
+    /^[A-Z]{2,4}\d{3}$/.test(values.code?.trim() ?? ""),
+    (values.name?.trim().length ?? 0) >= 2,
+    !!values.department,
+    (values.description?.trim().length ?? 0) > 0,
+  ];
+
+  return checks.filter(Boolean).length / checks.length;
+};

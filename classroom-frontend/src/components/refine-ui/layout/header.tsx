@@ -34,7 +34,8 @@ function DesktopHeader() {
         "gap-4",
         "border-b",
         "border-border",
-        "bg-sidebar",
+        "bg-background/65",
+        "backdrop-blur-xl",
         "pr-3",
         "justify-end",
         "z-40"
@@ -63,7 +64,8 @@ function MobileHeader() {
         "gap-2",
         "border-b",
         "border-border",
-        "bg-sidebar",
+        "bg-background/65",
+        "backdrop-blur-xl",
         "pr-3",
         "justify-between",
         "z-40"

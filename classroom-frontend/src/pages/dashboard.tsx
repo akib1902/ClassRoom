@@ -16,8 +16,8 @@ import {
 } from "recharts";
 
 import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb";
+import { GlowCard } from "@/components/refine-ui/effects/glow-card";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -32,6 +32,7 @@ import {
   gradeDistribution,
   mockStats,
 } from "@/mocks/dashboard";
+import { cn } from "@/lib/utils";
 import type { Subject } from "@/types";
 
 const departmentColor: Record<string, string> = {
@@ -66,7 +67,7 @@ const StatCard = ({
   const animated = useCountUp(value, 900, decimals);
 
   return (
-    <Card>
+    <GlowCard>
       <CardHeader className="pb-2">
         <CardDescription>{title}</CardDescription>
         <CardTitle className="text-3xl font-bold tabular-nums">
@@ -79,30 +80,44 @@ const StatCard = ({
           {hint}
         </CardContent>
       )}
-    </Card>
+    </GlowCard>
   );
 };
 
+/**
+ * Bento tile. The single `hero` tile carries the ambient loop
+ * (design brief §3 — one designated hero block moving in an ambient
+ * loop, surrounding tiles respond only on hover via GlowCard).
+ */
 const ChartCard = ({
   title,
   description,
   className,
+  hero = false,
   children,
 }: {
   title: string;
   description: string;
   className?: string;
+  hero?: boolean;
   children: ReactNode;
 }) => (
-  <Card className={className}>
+  <GlowCard className={cn(hero && "ambient-sweep", className)}>
     <CardHeader>
       <CardTitle className="text-base">{title}</CardTitle>
       <CardDescription>{description}</CardDescription>
     </CardHeader>
-    <CardContent>
-      <div className="h-[260px] w-full">{children}</div>
+    <CardContent className={cn(hero && "lg:flex-1")}>
+      <div
+        className={cn(
+          "w-full",
+          hero ? "h-[300px] lg:h-full lg:min-h-[360px]" : "h-[260px]"
+        )}
+      >
+        {children}
+      </div>
     </CardContent>
-  </Card>
+  </GlowCard>
 );
 
 const Dashboard = () => {
@@ -129,19 +144,19 @@ const Dashboard = () => {
     return (
       <div className="flex flex-col gap-6">
         <Breadcrumb />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index}>
+            <GlowCard key={index}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-16" />
               </CardHeader>
-            </Card>
+            </GlowCard>
           ))}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index}>
+            <GlowCard key={index}>
               <CardHeader>
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-3 w-56" />
@@ -149,7 +164,7 @@ const Dashboard = () => {
               <CardContent>
                 <Skeleton className="h-[260px] w-full" />
               </CardContent>
-            </Card>
+            </GlowCard>
           ))}
         </div>
       </div>
@@ -168,35 +183,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total subjects"
-          value={subjectCount}
-          hint="Live from the subjects data layer"
-        />
-        <StatCard
-          title="Students"
-          value={mockStats.students}
-          hint="Demo metric until the API lands"
-        />
-        <StatCard
-          title="Enrollment rate"
-          value={mockStats.enrollmentRate}
-          suffix="%"
-          hint="Seats filled across all subjects"
-        />
-        <StatCard
-          title="Attendance rate"
-          value={mockStats.attendanceRate}
-          suffix="%"
-          hint="Average across recorded sessions"
-        />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <ChartCard
+          hero
           title="Enrollment over time"
           description="Students enrolled per month"
+          className="sm:col-span-2 lg:col-span-2 lg:row-span-2"
         >
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={enrollmentTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -221,6 +213,29 @@ const Dashboard = () => {
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
+
+        <StatCard
+          title="Total subjects"
+          value={subjectCount}
+          hint="Live from the subjects data layer"
+        />
+        <StatCard
+          title="Students"
+          value={mockStats.students}
+          hint="Demo metric until the API lands"
+        />
+        <StatCard
+          title="Enrollment rate"
+          value={mockStats.enrollmentRate}
+          suffix="%"
+          hint="Seats filled across all subjects"
+        />
+        <StatCard
+          title="Attendance rate"
+          value={mockStats.attendanceRate}
+          suffix="%"
+          hint="Average across recorded sessions"
+        />
 
         <ChartCard
           title="Grade distribution"
@@ -270,6 +285,7 @@ const Dashboard = () => {
         <ChartCard
           title="Subjects by department"
           description="Live breakdown of the subjects catalogue"
+          className="sm:col-span-2"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

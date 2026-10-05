@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { FieldProgress } from "@/components/refine-ui/form/field-progress";
 import { DEPARTMENTS_OPTIONS } from "@/constants";
-import { subjectFormSchema, type SubjectInput } from "./schema";
+import { subjectFormSchema, subjectProgress, type SubjectInput } from "./schema";
 import type { Subject } from "@/types";
 
 const SubjectEdit = () => {
@@ -62,9 +63,12 @@ const SubjectEdit = () => {
   const {
     control,
     handleSubmit,
+    watch,
     refineCore: { onFinish },
     formState: { isSubmitting },
   } = form;
+
+  const progress = subjectProgress(watch());
 
   return (
     <EditView>
@@ -74,6 +78,13 @@ const SubjectEdit = () => {
           onSubmit={handleSubmit((values) => onFinish(values).catch(() => undefined))}
           className="max-w-3xl w-full mx-auto rounded-md border bg-card p-6 flex flex-col gap-6 shadow-sm"
         >
+          <div className="flex items-center justify-between gap-4 border-b pb-4">
+            <p className="text-sm text-muted-foreground">
+              Progress updates as you complete each field.
+            </p>
+            <FieldProgress value={progress} />
+          </div>
+
           <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={control}
