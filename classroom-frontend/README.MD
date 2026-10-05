@@ -22,11 +22,11 @@
 
 | Area | State |
 |------|-------|
-| Subjects list | ✅ Live — name search, department filter, server-side pagination over 12 mock subjects |
-| Data layer | ✅ Mock provider in `src/providers/data.ts` (`subjects` resource) |
-| Subjects create/edit/delete | ⛔ Placeholder (`src/pages/subjects/create.tsx`) |
-| Dashboard | ⛔ Placeholder (`src/pages/dashboard.tsx`) |
-| Auth pages | ⛔ Missing — `src/App.tsx` imports `login`, `register`, `forgot-password` (pre-existing build blocker; Phase 0) |
+| Subjects list | ✅ Live — name search, department filter, server-side pagination, row edit/delete actions |
+| Data layer | ✅ In-memory mock provider in `src/providers/data.ts` (full subjects CRUD; resets on reload until Phase 1) |
+| Subjects CRUD | ✅ Create/edit forms with F2 Zod validation (code pattern + uniqueness, name 2–120, department enum, description ≤ 500), delete confirmation, sonner toasts |
+| Dashboard | ✅ Stat cards with animated count-up (live subject count) + Recharts trends (mock series until `/api/dashboard/*`) |
+| Auth pages | ✅ `/login`, `/register`, `/forgot-password` wired through a mock `src/providers/auth.ts` (localStorage demo session; JWT + roles in Phase 2) |
 | Backend | ⛔ Not started — planned in §5 |
 
 ---
@@ -298,10 +298,10 @@ npm run dev:all    # frontend + backend together (planned script)
 
 ```
 ├── src/                  # React frontend (Refine)
-│   ├── pages/            # dashboard, subjects (list/create), auth pages (Phase 2)
+│   ├── pages/            # dashboard, subjects (list/create/edit), auth pages (login/register/forgot-password)
 │   ├── components/       # refine-ui (app shell) + ui (shadcn kit)
-│   ├── providers/        # data provider (mock → REST), constants
-│   ├── mocks/            # seed/mock subject data
+│   ├── providers/        # data provider (mock → REST) + mock auth provider, constants
+│   ├── mocks/            # seed/mock subject + dashboard data
 │   └── types/            # shared TS types
 ├── server/               # Express + SQLite API (Phase 1)
 ├── index.html
