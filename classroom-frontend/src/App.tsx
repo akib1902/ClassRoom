@@ -4,18 +4,16 @@ import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 
 import { BrowserRouter, Route, Routes, Outlet } from "react-router";
 import routerProvider, {
-  NavigateToResource,
-  CatchAllNavigate,
   UnsavedChangesNotifier,
   DocumentTitleHandler,
 } from "@refinedev/react-router";
 import { dataProvider } from "./providers/data";
+import { authProvider } from "./providers/auth";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
 import { ForgotPassword } from "./pages/forgot-password";
 import { ErrorComponent } from "./components/refine-ui/layout/error-component";
 import { Layout } from "./components/refine-ui/layout/layout";
-import { Header } from "./components/refine-ui/layout/header";
 import Dashboard from "./pages/dashboard";
 import { useNotificationProvider } from "./components/refine-ui/notification/use-notification-provider";
 import { Toaster } from "./components/refine-ui/notification/toaster";
@@ -24,6 +22,7 @@ import "./App.css";
 import { BookOpen, Home } from "lucide-react";
 import SubjectsList from "./pages/subjects/list";
 import SubjectCreate from "./pages/subjects/create";
+import SubjectEdit from "./pages/subjects/edit";
 
 function App() {
   return (
@@ -34,6 +33,7 @@ function App() {
           <DevtoolsProvider>
             <Refine
               dataProvider={dataProvider}
+              authProvider={authProvider}
               notificationProvider={useNotificationProvider()}
               routerProvider={routerProvider}
               options={{
@@ -50,11 +50,15 @@ function App() {
                 name: "subjects",
                 list: "/subjects",
                 create: '/subjects/create',
+                edit: '/subjects/edit/:id',
                 meta: { label: "Subjects", icon: <BookOpen />},
               }
               ]}
             >
               <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route element={<Layout>
                   <Outlet/>
                 </Layout>}>
@@ -62,7 +66,9 @@ function App() {
                 <Route path="/subjects">
                   <Route index element={<SubjectsList />} />  
                   <Route path="create" element={<SubjectCreate />} />  
+                  <Route path="edit/:id" element={<SubjectEdit />} />
                 </Route>
+                <Route path="*" element={<ErrorComponent />} />
                 </Route>
               </Routes>
               <Toaster />

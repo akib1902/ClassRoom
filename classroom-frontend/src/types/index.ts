@@ -1,8 +1,10 @@
+import type { Department } from "@/constants";
+
 export type Subject = {
     id: number;
-    name: String;
-    code: String;
-    description: String;
-    department: String;
-    createdAt: String;
+    name: string;
+    code: string;
+    description: string;
+    department: Department;
+    createdAt: string;
 }
