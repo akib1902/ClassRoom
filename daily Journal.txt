@@ -14,3 +14,8 @@ new start -> 2 proects to learn basic developments from roadmap.sh backend
 4. theory (integration, ai assisted etc.)
 time req (10D) 3D with advance project with ai agents etc. till 13 oct project.
 -> advance backend with devops
+
+
+
+tested new roadmap... back to backend with first principles and doing project after that. with ai integrated. next including devops on projects.
+goal: will try to make projects on infrastructure, real world prob solve, around devOps, software with scaling, Cross platform pc/mobile/web.
