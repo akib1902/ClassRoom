@@ -313,9 +313,160 @@
         @apply flex flex-col gap-5 lg:flex-row justify-between space-y-4;
     }
 
-    .class-view {
-        @apply container mx-auto pb-8 px-2 sm:px-4;
+/* ------------------------------------------------------------------
+   Micro-interactions & motion (design brief)
+   All animation is gated behind prefers-reduced-motion: no-preference.
+   ------------------------------------------------------------------ */
+
+/* §4 — pure-CSS typewriter with caret */
+.typewriter {
+    position: relative;
+    display: inline-block;
+    height: 1.5em;
+    /* Reserve the width of the widest word so the inline-block participates
+       in line breaking (absolute children have zero width otherwise) and a
+       word can never overflow the card at narrow widths. */
+    min-width: 11ch;
+    vertical-align: text-bottom;
+}
+
+.typewriter .typewriter-word {
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    display: none;
+}
+
+.typewriter .typewriter-word:first-child {
+    display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .typewriter .typewriter-word {
+        display: inline-block;
+        clip-path: inset(0 100% 0 0);
+        animation: type-reveal 12s both infinite;
     }
+
+    .typewriter .typewriter-word:nth-child(1) {
+        animation-delay: 0s;
+        animation-timing-function: steps(8, end);
+    }
+    .typewriter .typewriter-word:nth-child(2) {
+        animation-delay: 3s;
+        animation-timing-function: steps(6, end);
+    }
+    .typewriter .typewriter-word:nth-child(3) {
+        animation-delay: 6s;
+        animation-timing-function: steps(10, end);
+    }
+    .typewriter .typewriter-word:nth-child(4) {
+        animation-delay: 9s;
+        animation-timing-function: steps(7, end);
+    }
+
+    .typewriter .typewriter-word::after {
+        content: "";
+        display: inline-block;
+        width: 0.55ch;
+        height: 1em;
+        margin-left: 1px;
+        background: currentColor;
+        transform: translateY(0.12em);
+        animation: caret-blink 1s step-end infinite;
+    }
+}
+
+@keyframes type-reveal {
+    0% {
+        clip-path: inset(0 100% 0 0);
+    }
+    5% {
+        clip-path: inset(0 0 0 0);
+    }
+    19% {
+        clip-path: inset(0 0 0 0);
+    }
+    24% {
+        clip-path: inset(0 100% 0 0);
+    }
+    100% {
+        clip-path: inset(0 100% 0 0);
+    }
+}
+
+@keyframes caret-blink {
+    0%,
+    49% {
+        opacity: 1;
+    }
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* §4 — line-drawing SVG mark */
+.draw-mark path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .draw-mark path {
+        animation: draw-path 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+    .draw-mark path:nth-child(2) {
+        animation-delay: 0.35s;
+    }
+    .draw-mark path:nth-child(3) {
+        animation-delay: 0.7s;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .draw-mark path {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes draw-path {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* §3 — ambient loop for the single bento hero tile */
+.ambient-sweep::before {
+    content: "";
+    position: absolute;
+    inset: -30%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(45% 45% at 30% 25%, oklch(0.7686 0.1647 70.0804 / 0.14), transparent 70%),
+        radial-gradient(40% 40% at 75% 80%, oklch(0.6658 0.1574 58.3183 / 0.12), transparent 70%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ambient-sweep::before {
+        animation: ambient-drift 16s ease-in-out infinite alternate;
+    }
+}
+
+@keyframes ambient-drift {
+    from {
+        transform: translate3d(-4%, -3%, 0) scale(1);
+    }
+    to {
+        transform: translate3d(6%, 5%, 0) scale(1.12);
+    }
+}
+
+.class-view {
+    @apply container mx-auto pb-8 px-2 sm:px-4;
+}
 
     .class-form-card {
         @apply max-w-3xl gap-2 w-full mx-auto relative overflow-hidden border shadow-sm border-foreground/20;

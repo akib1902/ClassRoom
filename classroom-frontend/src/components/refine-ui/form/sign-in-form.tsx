@@ -4,7 +4,9 @@ import { useState } from "react";
 
 import { CircleHelp } from "lucide-react";
 
-import { useLogin, useRefineOptions, useLink } from "@refinedev/core";
+import { useLogin, useLink } from "@refinedev/core";
+import { DrawMark } from "@/components/refine-ui/effects/draw-mark";
+import { Typewriter } from "@/components/refine-ui/effects/typewriter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +29,6 @@ export const SignInForm = () => {
   const [password, setPassword] = useState("");
 
   const Link = useLink();
-
-  const { title } = useRefineOptions();
 
   const { mutate: login } = useLogin();
 
@@ -65,14 +65,9 @@ export const SignInForm = () => {
         "min-h-svh"
       )}
     >
-      <div className={cn("flex", "items-center", "justify-center")}>
-        {title.icon && (
-          <div
-            className={cn("text-foreground", "[&>svg]:w-12", "[&>svg]:h-12")}
-          >
-            {title.icon}
-          </div>
-        )}
+      <div className={cn("flex", "items-center", "justify-center", "gap-2")}>
+        <DrawMark className="size-11 text-primary" />
+        <span className="text-lg font-semibold tracking-tight">Classroom</span>
       </div>
 
       <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
@@ -90,7 +85,7 @@ export const SignInForm = () => {
           <CardDescription
             className={cn("text-muted-foreground", "font-medium")}
           >
-            Welcome back
+            Welcome back — <Typewriter />
           </CardDescription>
         </CardHeader>
 

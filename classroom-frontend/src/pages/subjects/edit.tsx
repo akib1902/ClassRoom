@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useForm } from "@refinedev/react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useList, type HttpError } from "@refinedev/core";
+import { useList, useResourceParams, type HttpError } from "@refinedev/core";
 
-import { CreateView, CreateViewHeader } from "@/components/refine-ui/views/create-view";
+import { EditView, EditViewHeader } from "@/components/refine-ui/views/edit-view";
 import {
   Form,
   FormControl,
@@ -27,7 +27,7 @@ import { DEPARTMENTS_OPTIONS } from "@/constants";
 import { subjectFormSchema, subjectProgress, type SubjectInput } from "./schema";
 import type { Subject } from "@/types";
 
-const SubjectCreate = () => {
+const SubjectEdit = () => {
   const { result } = useList<Subject>({
     resource: "subjects",
     pagination: { pageSize: 1000 },
@@ -35,14 +35,19 @@ const SubjectCreate = () => {
 
   const subjects = result.data;
 
+  const recordId = useResourceParams().id;
+
   const takenCodes = useMemo(
-    () => subjects.map((subject) => subject.code),
-    [subjects]
+    () =>
+      subjects
+        .filter((subject) => String(subject.id) !== String(recordId))
+        .map((subject) => subject.code),
+    [subjects, recordId]
   );
 
   const form = useForm<Subject, HttpError, SubjectInput>({
     refineCoreProps: {
-      action: "create",
+      action: "edit",
       resource: "subjects",
       redirect: "list",
     },
@@ -66,8 +71,8 @@ const SubjectCreate = () => {
   const progress = subjectProgress(watch());
 
   return (
-    <CreateView>
-      <CreateViewHeader resource="subjects" title="Create subject" />
+    <EditView>
+      <EditViewHeader resource="subjects" title="Edit subject" />
       <Form {...form}>
         <form
           onSubmit={handleSubmit((values) => onFinish(values).catch(() => undefined))}
@@ -157,13 +162,13 @@ const SubjectCreate = () => {
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Create subject"}
+              {isSubmitting ? "Saving..." : "Save changes"}
             </Button>
           </div>
         </form>
       </Form>
-    </CreateView>
+    </EditView>
   );
 };
 
-export default SubjectCreate;
+export default SubjectEdit;
