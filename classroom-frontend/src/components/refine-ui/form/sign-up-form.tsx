@@ -7,6 +7,7 @@ import {
   useLink,
   useNotification,
 } from "@refinedev/core";
+import { GraduationCap, ShieldCheck, Wrench } from "lucide-react";
 import { DrawMark } from "@/components/refine-ui/effects/draw-mark";
 import { Typewriter } from "@/components/refine-ui/effects/typewriter";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export const SignUpForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "instructor" | "student">("student");
 
   const { open } = useNotification();
 
@@ -52,18 +54,21 @@ export const SignUpForm = () => {
     register({
       email,
       password,
+      role,
     });
   };
 
   const handleSignUpWithGoogle = () => {
     register({
       providerName: "google",
+      role,
     });
   };
 
   const handleSignUpWithGitHub = () => {
     register({
       providerName: "github",
+      role,
     });
   };
 
@@ -141,6 +146,51 @@ export const SignUpForm = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+            </div>
+
+            <div className={cn("mt-6", "flex", "flex-col", "gap-2")}>
+              <Label>I am signing up as</Label>
+              <div className="grid w-full grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "student" &&
+                      "border-green-600 bg-green-600/10 text-green-700 dark:text-green-400"
+                  )}
+                  onClick={() => setRole("student")}
+                  aria-pressed={role === "student"}
+                >
+                  <GraduationCap className="h-5 w-5" />
+                  <span className="text-xs">Student</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "instructor" &&
+                      "border-green-600 bg-green-600/10 text-green-700 dark:text-green-400"
+                  )}
+                  onClick={() => setRole("instructor")}
+                  aria-pressed={role === "instructor"}
+                >
+                  <Wrench className="h-5 w-5" />
+                  <span className="text-xs">Instructor</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "admin" &&
+                      "border-green-600 bg-green-600/10 text-green-700 dark:text-green-400"
+                  )}
+                  onClick={() => setRole("admin")}
+                  aria-pressed={role === "admin"}
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  <span className="text-xs">Admin</span>
+                </button>
+              </div>
             </div>
 
             <Button
