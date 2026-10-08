@@ -1,4 +1,5 @@
-import {Refine, GitHubBanner} from "@refinedev/core";
+import { lazy, Suspense } from "react";
+import {Refine, GitHubBanner, Authenticated} from "@refinedev/core";
 import { DevtoolsPanel, DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 
@@ -19,7 +20,7 @@ import { useNotificationProvider } from "./components/refine-ui/notification/use
 import { Toaster } from "./components/refine-ui/notification/toaster";
 import { ThemeProvider } from "./components/refine-ui/theme/theme-provider";
 import "./App.css";
-import { BookOpen, Home, Megaphone } from "lucide-react";
+import { BookOpen, Box, Home, Megaphone } from "lucide-react";
 import SubjectsList from "./pages/subjects/list";
 import SubjectCreate from "./pages/subjects/create";
 import SubjectEdit from "./pages/subjects/edit";
@@ -29,6 +30,8 @@ import NoticeCreate from "./pages/notices/create";
 import NoticeEdit from "./pages/notices/edit";
 import NoticesManage from "./pages/notices/manage";
 import { RequireRole } from "./components/refine-ui/auth/require-role";
+
+const Classroom3D = lazy(() => import("./pages/classroom-3d"));
 
 function App() {
   return (
@@ -66,15 +69,24 @@ function App() {
                 create: "/notices/create",
                 edit: "/notices/edit/:id",
                 meta: { label: "Notices", icon: <Megaphone />},
+              },
+              {
+                name: "classroom3d",
+                list: "/classroom-3d",
+                meta: { label: "3D Classroom", icon: <Box />},
               }
               ]}
             >              <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route element={<Layout>
-                  <Outlet/>
-                </Layout>}>
+                <Route element={
+                  <Authenticated key="protected-routes">
+                    <Layout>
+                      <Outlet/>
+                    </Layout>
+                  </Authenticated>
+                }>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/subjects">
                     <Route index element={<SubjectsList />} />
@@ -140,6 +152,20 @@ function App() {
                     />
                     <Route path="manage" element={<NoticesManage />} />
                   </Route>
+                  <Route
+                    path="/classroom-3d"
+                    element={
+                      <Suspense
+                        fallback={
+                          <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+                            Loading 3D classroom…
+                          </div>
+                        }
+                      >
+                        <Classroom3D />
+                      </Suspense>
+                    }
+                  />
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>
               </Routes>

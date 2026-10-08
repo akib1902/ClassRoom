@@ -147,9 +147,15 @@ export const authProvider: AuthProvider = {
     };
   },
 
-  check: async () => ({
-    authenticated: true,
-  }),
+  /**
+   * Enforced on every route outside the auth pages: without a persisted
+   * session this fails and `<Authenticated>` sends the visitor to /login
+   * (remembering the path they tried to reach, so login returns them there).
+   */
+  check: async () =>
+    readSession()
+      ? { authenticated: true }
+      : { authenticated: false, redirectTo: "/login" },
 
   getIdentity: async () => readSession() ?? buildSession("demo@classroom.local"),
 
