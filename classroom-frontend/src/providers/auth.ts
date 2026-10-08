@@ -44,7 +44,11 @@ const nameFromEmail = (email: string): Omit<Session, "id" | "email" | "role"> =>
   };
 };
 
-const buildSession = (email: string, providerName?: string): Session => {
+const buildSession = (
+  email: string,
+  providerName?: string,
+  role?: Role
+): Session => {
   if (providerName) {
     return {
       id: "demo",
@@ -52,7 +56,7 @@ const buildSession = (email: string, providerName?: string): Session => {
       firstName: "Demo",
       lastName: "User",
       fullName: "Demo User",
-      role: "admin",
+      role: role ?? "student",
     };
   }
 
@@ -60,7 +64,7 @@ const buildSession = (email: string, providerName?: string): Session => {
     id: String(Date.now()),
     email,
     ...nameFromEmail(email),
-    role: "admin",
+    role: role ?? "student",
   };
 };
 
@@ -81,9 +85,27 @@ const clearSession = () => {
   localStorage.removeItem(SESSION_KEY);
 };
 
+/**
+ * Role of the current demo session — used by the mock data provider to
+ * enforce the PRD F9–F11 permission matrix (403 for insufficient roles).
+ */
+export const getCurrentRole = (): Role => readSession()?.role ?? "student";
+
+/** Display name for `createdBy` / `uploadedBy` fields on new records. */
+export const getCurrentUserName = (): string =>
+  readSession()?.fullName ?? buildSession("demo@classroom.local").fullName;
+
 export const authProvider: AuthProvider = {
-  login: async ({ email, providerName }: { email?: string; providerName?: string }) => {
-    const session = buildSession(email ?? "", providerName);
+  login: async ({
+    email,
+    providerName,
+    role,
+  }: {
+    email?: string;
+    providerName?: string;
+    role?: Role;
+  }) => {
+    const session = buildSession(email ?? "", providerName, role);
     writeSession(session);
 
     return {
@@ -97,8 +119,8 @@ export const authProvider: AuthProvider = {
     };
   },
 
-  register: async ({ email }: { email?: string }) => {
-    const session = buildSession(email ?? "");
+  register: async ({ email, role }: { email?: string; role?: Role }) => {
+    const session = buildSession(email ?? "", undefined, role);
     writeSession(session);
 
     return {

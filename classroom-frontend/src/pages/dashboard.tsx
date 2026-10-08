@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
-import { useList } from "@refinedev/core";
+import { useGetIdentity, useList, usePermissions } from "@refinedev/core";
+import { Link } from "react-router";
 import {
   Area,
   AreaChart,
@@ -14,6 +15,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  BookOpen,
+  CalendarDays,
+  FileText,
+  Lightbulb,
+  Megaphone,
+  Plus,
+} from "lucide-react";
 
 import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb";
 import { GlowCard } from "@/components/refine-ui/effects/glow-card";
@@ -23,8 +32,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DEPARTMENTS } from "@/constants";
+import { DEPARTMENTS, daysUntil, formatDate } from "@/constants";
 import { useCountUp } from "@/hooks/use-count-up";
 import {
   attendanceTrend,
@@ -33,7 +44,7 @@ import {
   mockStats,
 } from "@/mocks/dashboard";
 import { cn } from "@/lib/utils";
-import type { Subject } from "@/types";
+import type { Notice, Subject, StudyMaterial, Suggestion } from "@/types";
 
 const departmentColor: Record<string, string> = {
   CS: "var(--chart-1)",
@@ -120,7 +131,257 @@ const ChartCard = ({
   </GlowCard>
 );
 
+/** One row of the student home's quick links. */
+const QuickLink = ({
+  to,
+  icon,
+  title,
+  description,
+}: {
+  to: string;
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) => (
+  <Link
+    to={to}
+    className="group flex items-start gap-3 rounded-md border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-accent"
+  >
+    <div className="rounded-md border bg-muted p-2 shrink-0 transition-colors group-hover:text-primary">
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <p className="font-medium leading-tight">{title}</p>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  </Link>
+);
+
+/**
+ * Student landing — view & download only. No mutation affordances anywhere:
+ * students browse classrooms, read announcements, open materials and follow
+ * exam guidance (PRD §1 role matrix; F9–F11 read-only for students).
+ */
+const StudentHome = () => {
+  const { data: identity } = useGetIdentity();
+
+  const { query: subjectsQuery, result: subjectsResult } = useList<Subject>({
+    resource: "subjects",
+    pagination: { pageSize: 1000 },
+  });
+  const { result: noticesResult } = useList<Notice>({
+    resource: "notices",
+    pagination: { pageSize: 3 },
+    sorters: [
+      { field: "pinned", order: "desc" },
+      { field: "createdAt", order: "desc" },
+    ],
+  });
+  const { result: materialsResult } = useList<StudyMaterial>({
+    resource: "materials",
+    pagination: { pageSize: 1 },
+  });
+  const { result: suggestionsResult } = useList<Suggestion>({
+    resource: "suggestions",
+    pagination: { pageSize: 1000 },
+  });
+
+  const isLoading = subjectsQuery.isLoading;
+  const subjects = subjectsResult.data;
+  const notices = noticesResult.data;
+  const materialsTotal = materialsResult.total ?? 0;
+
+  const subjectById = useMemo(
+    () => new Map(subjects.map((subject) => [subject.id, subject])),
+    [subjects]
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = suggestionsResult.data
+    .filter((item) => item.examAt && item.examAt >= today)
+    .sort((a, b) => (a.examAt ?? "").localeCompare(b.examAt ?? ""))
+    .slice(0, 3);
+
+  const firstName =
+    (identity as { firstName?: string } | undefined)?.firstName ?? "there";
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Breadcrumb />
+        <Skeleton className="h-10 w-72" />
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 rounded-md" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 rounded-md" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Breadcrumb />
+      <div>
+        <h1 className="page-title">Welcome back, {firstName}</h1>
+        <p className="text-sm text-muted-foreground">
+          Your read-only student workspace — browse classrooms, read
+          announcements and download materials.
+        </p>
+      </div>
+
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Classrooms"
+          value={subjectsResult.total ?? subjects.length}
+          hint="Subjects you can open"
+        />
+        <StatCard
+          title="Announcements"
+          value={noticesResult.total ?? notices.length}
+          hint="On the notice board"
+        />
+        <StatCard
+          title="Study materials"
+          value={materialsTotal}
+          hint="Files ready to view or download"
+        />
+        <StatCard
+          title="Upcoming exams"
+          value={upcoming.length}
+          hint="With published guidance"
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <QuickLink
+          to="/subjects"
+          icon={<BookOpen className="h-4 w-4" />}
+          title="Browse classrooms"
+          description="Open a subject, then read its Materials and Suggestions tabs."
+        />
+        <QuickLink
+          to="/notices"
+          icon={<Megaphone className="h-4 w-4" />}
+          title="Notice board"
+          description="Announcements for every classroom — pinned ones stay on top."
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GlowCard>
+          <CardHeader>
+            <CardTitle className="text-base">Latest announcements</CardTitle>
+            <CardDescription>Newest notices across your classrooms</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {notices.length === 0 && (
+              <p className="text-sm text-muted-foreground">No notices yet.</p>
+            )}
+            {notices.map((notice) => (
+              <Link
+                key={notice.id}
+                to="/notices"
+                className="flex items-start justify-between gap-3 border-b pb-3 last:border-0 last:pb-0 hover:underline"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium leading-snug line-clamp-1">
+                    {notice.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">
+                    {notice.body}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {notice.pinned && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Pinned
+                    </Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(notice.createdAt)}
+                  </span>
+                </div>
+              </Link>
+            ))}
+            <Button variant="outline" size="sm" asChild className="self-start">
+              <Link to="/notices">Open the notice board</Link>
+            </Button>
+          </CardContent>
+        </GlowCard>
+
+        <GlowCard>
+          <CardHeader>
+            <CardTitle className="text-base">Upcoming exam guidance</CardTitle>
+            <CardDescription>Nearest exam first — straight to the materials</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {upcoming.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No upcoming exams with guidance yet.
+              </p>
+            )}
+            {upcoming.map((item) => {
+              const subject = subjectById.get(item.subjectId);
+              const days = item.examAt ? daysUntil(item.examAt) : 0;
+              return (
+                <Link
+                  key={item.id}
+                  to={`/subjects/show/${item.subjectId}?tab=suggestions`}
+                  className="flex items-start justify-between gap-3 border-b pb-3 last:border-0 last:pb-0 hover:underline"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium leading-snug line-clamp-1">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {subject?.name ?? "Classroom"} · {item.materialIds.length}{" "}
+                      linked material{item.materialIds.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">
+                    <CalendarDays className="h-3 w-3" />
+                    {formatDate(item.examAt ?? "")} · in {days}d
+                  </Badge>
+                </Link>
+              );
+            })}
+          </CardContent>
+        </GlowCard>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <QuickLink
+          to="/subjects"
+          icon={<FileText className="h-4 w-4" />}
+          title="Download materials"
+          description="PDFs, decks, worksheets and recordings per classroom."
+        />
+        <QuickLink
+          to="/subjects"
+          icon={<Lightbulb className="h-4 w-4" />}
+          title="Study suggestions"
+          description="Admin-published guidance, nearest exam first."
+        />
+        <QuickLink
+          to="/notices"
+          icon={<Megaphone className="h-4 w-4" />}
+          title="Read announcements"
+          description="Students can read and download — posting is for staff."
+        />
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
+  const { data: role } = usePermissions<string>({});
+
   const { query, result } = useList<Subject>({
     resource: "subjects",
     pagination: { pageSize: 1000 },
@@ -139,6 +400,11 @@ const Dashboard = () => {
       })),
     [subjects]
   );
+
+  // Role-wise landing: students get a view/download-only home (F1/§1).
+  if (role === "student") {
+    return <StudentHome />;
+  }
 
   if (isLoading) {
     return (
@@ -175,11 +441,37 @@ const Dashboard = () => {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
         <Breadcrumb />
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Subjects, enrollment, grades and attendance at a glance
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Subjects, enrollment, grades and attendance at a glance
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {role === "admin" && (
+              <Button asChild size="sm">
+                <Link to="/subjects/create">
+                  <Plus className="h-4 w-4" />
+                  New subject
+                </Link>
+              </Button>
+            )}
+            {(role === "admin" || role === "instructor") && (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/notices/create">
+                  <Megaphone className="h-4 w-4" />
+                  Post notice
+                </Link>
+              </Button>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/subjects">
+                <BookOpen className="h-4 w-4" />
+                Classrooms
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -248,7 +540,7 @@ const Dashboard = () => {
               <YAxis tick={axisTick} tickLine={false} axisLine={false} width={40} />
               <Tooltip
                 contentStyle={tooltipStyle}
-                cursor={{ fill: "var(--muted)", opacity: 0.6 }}
+                cursor={{ fill: "var(--muted)" }}
               />
               <Bar dataKey="count" name="Students" radius={[4, 4, 0, 0]}>
                 {gradeDistribution.map((entry) => (
@@ -305,7 +597,7 @@ const Dashboard = () => {
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                cursor={{ fill: "var(--muted)", opacity: 0.6 }}
+                cursor={{ fill: "var(--muted)" }}
               />
               <Bar dataKey="count" name="Subjects" radius={[0, 4, 4, 0]} barSize={22}>
                 {departmentBreakdown.map((entry) => (

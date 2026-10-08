@@ -9,11 +9,16 @@ import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Subject } from "@/types/index.ts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EditButton } from "@/components/refine-ui/buttons/edit";
 import { DeleteButton } from "@/components/refine-ui/buttons/delete";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Pencil, Search, Trash2, FolderOpen } from "lucide-react";
+import { Link } from "react-router";
+import { usePermissions } from "@refinedev/core";
 
 const SubjectsList = () => {
+  const { data: role } = usePermissions<string>({});
+  const canManage = role === "admin";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all"); 
   const departmentFilter = selectedDepartment === "all" ? [] : [
@@ -60,35 +65,49 @@ const SubjectsList = () => {
       },
       {
         id: "actions",
-        size: 90,
+        size: 130,
         enableColumnFilter: false,
         enableSorting: false,
         header: () => <p className="column-title ml-2">Actions</p>,
         cell: ({ row }) => (
           <div className="flex items-center gap-1">
-            <EditButton
-              resource="subjects"
-              recordItemId={row.original.id}
+            <Button
               size="icon"
               variant="ghost"
-              title="Edit subject"
+              title="Materials & suggestions"
+              asChild
             >
-              <Pencil className="h-4 w-4" />
-            </EditButton>
-            <DeleteButton
-              resource="subjects"
-              recordItemId={row.original.id}
-              size="icon"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              title="Delete subject"
-            >
-              <Trash2 className="h-4 w-4" />
-            </DeleteButton>
+              <Link to={`/subjects/show/${row.original.id}`}>
+                <FolderOpen className="h-4 w-4" />
+              </Link>
+            </Button>
+            {canManage && (
+              <>
+                <EditButton
+                  resource="subjects"
+                  recordItemId={row.original.id}
+                  size="icon"
+                  variant="ghost"
+                  title="Edit subject"
+                >
+                  <Pencil className="h-4 w-4" />
+                </EditButton>
+                <DeleteButton
+                  resource="subjects"
+                  recordItemId={row.original.id}
+                  size="icon"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  title="Delete subject"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </DeleteButton>
+              </>
+            )}
           </div>
         ),
       }
-    ], []),
+    ], [canManage]),
     refineCoreProps: {
       resource: "subjects",
       pagination: {pageSize: 10, mode: "server"},
@@ -124,7 +143,7 @@ const SubjectsList = () => {
                 ))}
               </SelectContent>
             </Select>
-            <CreateButton/>
+            {canManage && <CreateButton/>}
           </div>
         </div>
       </div>

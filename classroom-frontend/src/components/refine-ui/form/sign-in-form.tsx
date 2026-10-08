@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, GraduationCap, ShieldCheck, Wrench } from "lucide-react";
 
 import { useLogin, useLink } from "@refinedev/core";
 import { DrawMark } from "@/components/refine-ui/effects/draw-mark";
@@ -27,6 +27,7 @@ export const SignInForm = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "instructor" | "student">("student");
 
   const Link = useLink();
 
@@ -38,18 +39,21 @@ export const SignInForm = () => {
     login({
       email,
       password,
+      role,
     });
   };
 
   const handleSignInWithGoogle = () => {
     login({
       providerName: "google",
+      role,
     });
   };
 
   const handleSignInWithGitHub = () => {
     login({
       providerName: "github",
+      role,
     });
   };
 
@@ -148,6 +152,55 @@ export const SignInForm = () => {
                 <span>Forgot password</span>
                 <CircleHelp className={cn("w-4", "h-4")} />
               </Link>
+            </div>
+
+            <div className={cn("mt-6", "flex", "flex-col", "gap-2")}>
+              <Label>Sign in as</Label>
+              <div className="grid w-full grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "student" &&
+                      "border-primary bg-primary/10 text-primary"
+                  )}
+                  onClick={() => setRole("student")}
+                  aria-pressed={role === "student"}
+                >
+                  <GraduationCap className="h-5 w-5" />
+                  <span className="text-xs">Student</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "instructor" &&
+                      "border-primary bg-primary/10 text-primary"
+                  )}
+                  onClick={() => setRole("instructor")}
+                  aria-pressed={role === "instructor"}
+                >
+                  <Wrench className="h-5 w-5" />
+                  <span className="text-xs">Instructor</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-md border border-input bg-background p-3 text-sm font-medium transition-colors",
+                    role === "admin" &&
+                      "border-primary bg-primary/10 text-primary"
+                  )}
+                  onClick={() => setRole("admin")}
+                  aria-pressed={role === "admin"}
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  <span className="text-xs">Admin</span>
+                </button>
+              </div>
+              <p className={cn("text-xs", "text-muted-foreground")}>
+                Students get a view-and-download-only workspace; instructors can
+                post notices and upload materials; admins manage everything.
+              </p>
             </div>
 
             <Button type="submit" size="lg" className={cn("w-full", "mt-6")}>
