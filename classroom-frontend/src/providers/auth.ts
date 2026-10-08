@@ -56,7 +56,7 @@ const buildSession = (
       firstName: "Demo",
       lastName: "User",
       fullName: "Demo User",
-      role: role ?? "admin",
+      role: role ?? "student",
     };
   }
 
@@ -64,7 +64,7 @@ const buildSession = (
     id: String(Date.now()),
     email,
     ...nameFromEmail(email),
-    role: role ?? "admin",
+    role: role ?? "student",
   };
 };
 
@@ -89,7 +89,7 @@ const clearSession = () => {
  * Role of the current demo session — used by the mock data provider to
  * enforce the PRD F9–F11 permission matrix (403 for insufficient roles).
  */
-export const getCurrentRole = (): Role => readSession()?.role ?? "admin";
+export const getCurrentRole = (): Role => readSession()?.role ?? "student";
 
 /** Display name for `createdBy` / `uploadedBy` fields on new records. */
 export const getCurrentUserName = (): string =>

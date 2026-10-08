@@ -148,7 +148,10 @@ export const markInitialized = async (): Promise<void> => {
     (db) =>
       new Promise<void>((resolve, reject) => {
         const tx = db.transaction(META_STORE, "readwrite");
-        tx.objectStore(META_STORE).put({ key: "initialized", value: true });
+        // The `meta` store is out-of-line (no keyPath), so the row key must be
+        // passed explicitly — omitting it throws DataError, which would leave
+        // the DB "uninitialized" and make every reload re-seed over user data.
+        tx.objectStore(META_STORE).put({ key: "initialized", value: true }, "initialized");
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error);
