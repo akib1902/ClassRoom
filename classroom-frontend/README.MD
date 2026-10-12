@@ -26,9 +26,10 @@
 | Data layer | ✅ In-memory mock provider in `src/providers/data.ts` (full subjects CRUD; resets on reload until Phase 1) |
 | Subjects CRUD | ✅ Create/edit forms with F2 Zod validation (code pattern + uniqueness, name 2–120, department enum, description ≤ 500), delete confirmation, sonner toasts |
 | Dashboard | ✅ Stat cards with animated count-up (live subject count) + Recharts trends (mock series until `/api/dashboard/*`) |
-| Auth pages | ✅ `/login`, `/register`, `/forgot-password` wired through a mock `src/providers/auth.ts` (localStorage demo session; JWT + roles in Phase 2) |
+| Auth pages | ✅ `/login`, `/register`, `/forgot-password`. Demo mode (default) keeps the localStorage session in `src/providers/auth.ts`; `VITE_AUTH_MODE=api` switches the SPA to real API sessions |
+| Auth API (F1) | ✅ Google OAuth 2.0 (authorization code + PKCE, server-side exchange) + email/password, JWT access token, rotating httpOnly refresh cookie, server-assigned roles — see §10 and [`server/README.md`](server/README.md) |
 | Notices / Materials / Suggestions | ⛔ Planned — F9–F11 (§3); schema, endpoints, and hybrid mock seeds designed in §5.2–§5.4 |
-| Backend | ⛔ Not started — planned in §5 |
+| Backend | 🟡 Started — the F1 auth slice lives in `server/` (§5, §10); resources (subjects/students/…) still run on the mock provider |
 
 ---
 
@@ -60,7 +61,7 @@
 | Framework | Express 4 |
 | Database | SQLite via `better-sqlite3` (WAL mode) — zero external services, portable to PostgreSQL |
 | Validation | Zod (shared request/response schemas) |
-| Auth | JWT access token (15 min) + refresh token (7 d, httpOnly cookie), bcrypt cost ≥ 12 |
+| Auth | Google OAuth 2.0 (authorization code + PKCE, server-side exchange, JWKS-verified ID token); email/password with bcrypt cost 12; JWT access token (15 min) + rotating refresh token (7 d, httpOnly cookie) |
 | Security | helmet, cors, `express-rate-limit` (auth: 10 req / 15 min / IP) |
 | Testing | Jest + supertest |
 | Process | `nodemon` in dev; single `server/` folder in this repo |
@@ -330,7 +331,7 @@ Hybrid seeding — **hand-authored metadata + real public sample files** — use
 |-------|-------|---------|
 | **0 — Cleanup** | Fix 3 missing `App.tsx` page imports; fix `Badge` import in `list.tsx` (lucide → shadcn); `String` → `string` in `src/types/index.ts` | `tsc --noEmit` green; Code/Department render as text badges |
 | **1 — Backend core** | Express + SQLite schema + subjects/students endpoints + seeds; data provider switch (mock behind env flag) | Real data flows to the subjects list |
-| **2 — Auth** | JWT flows, 3 auth pages, protected routes, roles | Login → role-aware app |
+| **2 — Auth** | ✅ Google OAuth (code + PKCE) + email/password, JWT flows, rotating refresh cookie, 3 auth pages, protected routes, server-assigned roles | Login → role-aware app (Google or password) |
 | **3 — Subjects CRUD + Students/Enrollment** | Create/edit/delete forms, roster, CSV import, capacity rules | F2–F4 complete |
 | **4 — Grades + Attendance** | Gradebook UI, bulk entry, attendance sessions + summaries | F5–F6 complete |
 | **5 — Dashboard + polish** | Stat cards, Recharts trends, ⌘K palette, design-system pass | F7–F8 complete |
@@ -366,6 +367,12 @@ npm run dev:all    # frontend + backend together (planned script)
 |----------|-------|---------|---------|
 | `VITE_API_URL` | `.env` (exists) | REST API base URL for the data provider | `http://localhost:4000/api` |
 | `VITE_USE_MOCKS` | `.env` (planned) | Use the in-memory mock provider | `true` until Phase 1 |
+| `VITE_AUTH_MODE` | `.env` (exists) | `mock` (offline demo) or `api` (real sessions via `server/`) | `mock` |
+| `VITE_AUTH_API_URL` | `.env` (exists) | Auth API base URL, read when `VITE_AUTH_MODE=api` | `http://localhost:4000/api` |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | `server/.env` | Google OAuth client (§10) | — (required for Google sign-in) |
+| `APP_ORIGIN` / `API_ORIGIN` / `ALLOWED_ORIGINS` | `server/.env` | SPA origin, public API origin (builds the Google redirect URI), credentialed-CORS allowlist | — (required) |
+| `ADMIN_EMAILS` | `server/.env` (optional) | Addresses promoted to `admin` on first sign-in | — |
+| `GOOGLE_ALLOWED_DOMAINS` | `server/.env` (optional) | Restrict sign-in to these Workspace domains (`hd` claim) | — |
 | `PORT` | `server/.env` (planned) | API port | `4000` |
 | `JWT_SECRET` | `server/.env` (planned) | Access-token signing key | — (required) |
 | `DATABASE_PATH` | `server/.env` (planned) | SQLite file location | `server/classroom.db` |
@@ -405,7 +412,7 @@ Open http://localhost:5173 — the mock auth reports an authenticated demo sessi
 
 1. On `/login`, enter **any** email + password (both fields are simply required) — the mock auth provider (`src/providers/auth.ts`) accepts any credentials, stores a demo session in localStorage, and greets you with a toast.
 2. New here? `/register` creates an account; `/forgot-password` walks the recovery flow (mocked).
-3. Sign out from the avatar menu in the header (top-right) — it clears the demo session and returns you to `/login`. (From Phase 2 this becomes real JWT auth with admin / instructor / student roles.)
+3. Sign out from the avatar menu in the header (top-right) — it clears the demo session and returns you to `/login`. (With `VITE_AUTH_MODE=api` this becomes real JWT auth against `server/`, with the admin / instructor / student role assigned by the server — see §10.)
 
 ### 9.3 Daily flows (working today)
 
@@ -422,7 +429,7 @@ Open http://localhost:5173 — the mock auth reports an authenticated demo sessi
 ### 9.4 Things to know
 
 - **Mock data resets on reload.** Subjects, dashboard series, and (from Phase 7) notices/materials/suggestions live in memory in `src/providers/data.ts` — edits persist while you navigate the app, but a full page refresh restores the seed. Real persistence arrives with the backend (§5).
-- **Auth is mock-only today**: `check()` always reports an authenticated demo session, so no route is gated; any credentials sign in, and the register form only checks that both passwords match (HTML `required`, no policy yet). Real password policy — bcrypt hashing, reset tokens, role claims — lands with F1 in Phase 2.
+- **Auth runs in demo mode by default**: `VITE_AUTH_MODE=mock` keeps the offline provider, so any credentials sign in, the role picker is a local-only convenience, and a session may already exist — meaning protected routes can open without a sign-in. Set `VITE_AUTH_MODE=api` (and start `server/`) for real security: Google OAuth + JWT sessions, server-assigned roles, and `check()` that re-validates against the API on every protected route. The register form then also enforces the password policy (12+ characters, letter + number).
 - **Errors are visible**: failed mutations show sonner toasts (duplicate code, 404 on a missing record) rather than failing silently.
 
 ### 9.5 Planned flows (F9–F11, Phase 7)
@@ -432,6 +439,71 @@ Once Phase 7 lands, the same walkthrough extends to:
 1. **Notice board** — post an announcement (admin/instructor) at `/notices`; admins manage everything at `/notices/manage` (edit/delete with confirmation).
 2. **Study materials** — open a subject → **Materials** tab → upload a PDF/DOCX/Excel/PPT/video/PNG/text file (50 MB cap), search and filter by type, edit metadata, delete.
 3. **Suggestions** — admin publishes pre-exam guidance on the subject's **Suggestions** tab and links it to materials; students see them ordered by nearest exam date right above the file list.
+
+---
+
+## 10. Google sign-in (production)
+
+The Google button used to create a fake `demo@google.local` session in
+`localStorage`. It now performs a real OAuth 2.0 **authorization code + PKCE**
+round-trip against Google, with the token exchange and ID-token verification
+happening on the server in [`server/`](server/README.md).
+
+### Enabling it
+
+1. **Start the API** (see [`server/README.md`](server/README.md) for the full walkthrough):
+
+   ```bash
+   npm run server          # http://localhost:4000
+   ```
+2. **Create an OAuth client** in the Google Cloud Console (Web application) with
+   - Authorized JavaScript origin: `http://localhost:5173`
+   - Authorized redirect URI: `http://localhost:4000/api/auth/google/callback`
+
+   Copy the client ID/secret into `server/.env` (see `server/.env.example`), also
+   setting `JWT_SECRET`, `APP_ORIGIN`, `API_ORIGIN` and `ALLOWED_ORIGINS`.
+3. **Point the SPA at the API** in the root `.env`:
+
+   ```
+   VITE_AUTH_MODE=api
+   VITE_AUTH_API_URL=http://localhost:4000/api
+   ```
+
+   `GET /api/auth/providers` reports whether the server is ready; if Google is
+   not configured the button renders disabled with an explanatory hint instead of
+   failing after a redirect.
+
+### Flow
+
+```
+SPA  ──▶ GET  /api/auth/google/start    302 to Google; sets a signed httpOnly
+                                        cookie holding the PKCE verifier, state, nonce
+Google ─▶ GET /api/auth/google/callback exchanges the code with the client secret,
+                                        verifies the ID token, upserts the user,
+                                        sets an httpOnly refresh cookie
+API  ──▶ 302  APP_ORIGIN/<path>?auth=success&via=google
+SPA  ──▶ POST /api/auth/refresh         mints the in-memory access token
+```
+
+Nothing sensitive travels in a URL, and the browser never holds a long-lived
+credential: the access token is memory-only and the refresh token is an httpOnly
+cookie that is rotated on every use (replaying an old one revokes the family).
+A failed attempt returns to `/login?auth=error&reason=<code>` and the SPA turns
+the code into a toast — see `src/components/refine-ui/auth/auth-url-marker.tsx`.
+
+### Roles
+
+In API mode the role is **assigned by the server**, never chosen by the client:
+new accounts are `student`, and addresses listed in `ADMIN_EMAILS` are promoted to
+`admin` on first sign-in. The sign-in/sign-up role pickers are hidden in API mode
+because the API ignores any role sent with the request.
+
+### Verifying without a Google client
+
+`npm run server:test` covers the flow end-to-end — PKCE binding, signature/`aud`/
+`iss`/`exp`/`nonce`/`email_verified` rejection paths, refresh rotation and reuse
+detection, logout, CSRF origin checks and open-redirect blocking — using a fake
+Google that signs real RS256 tokens, so no network or credentials are needed.
 
 ---
 

@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { InputPassword } from "@/components/refine-ui/form/input-password";
+import { useGoogleAvailability } from "@/hooks/use-google-availability";
+import { IS_API_AUTH } from "@/providers/constants";
 import { cn } from "@/lib/utils";
 
 export const SignInForm = () => {
@@ -32,6 +34,7 @@ export const SignInForm = () => {
   const Link = useLink();
 
   const { mutate: login } = useLogin();
+  const { googleEnabled, checking: checkingProviders } = useGoogleAvailability();
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -154,6 +157,10 @@ export const SignInForm = () => {
               </Link>
             </div>
 
+            {/* The role picker is a demo affordance: with the real API the role
+                is assigned server-side and a client-supplied one is ignored, so
+                showing a selector here would be a lie. */}
+            {!IS_API_AUTH && (
             <div className={cn("mt-6", "flex", "flex-col", "gap-2")}>
               <Label>Sign in as</Label>
               <div className="grid w-full grid-cols-3 gap-2">
@@ -202,6 +209,7 @@ export const SignInForm = () => {
                 post notices and upload materials; admins manage everything.
               </p>
             </div>
+            )}
 
             <Button type="submit" size="lg" className={cn("w-full", "mt-6")}>
               Sign in
@@ -215,12 +223,26 @@ export const SignInForm = () => {
 
             <div className={cn("flex", "flex-col", "gap-4", "mt-6")}>
               <p className={cn("text-sm", "font-medium")}>Sign in using</p>
-              <div className={cn("grid grid-cols-2", "gap-6")}>
+              <div
+                className={cn(
+                  "grid",
+                  IS_API_AUTH ? "grid-cols-1" : "grid-cols-2",
+                  "gap-6"
+                )}
+              >
                 <Button
                   variant="outline"
                   className={cn("flex", "items-center", "gap-2")}
                   onClick={handleSignInWithGoogle}
                   type="button"
+                  disabled={
+                    IS_API_AUTH && (checkingProviders || !googleEnabled)
+                  }
+                  title={
+                    IS_API_AUTH && !checkingProviders && !googleEnabled
+                      ? "Google sign-in is not configured on the server yet"
+                      : undefined
+                  }
                 >
                   <svg
                     width="21"
@@ -237,6 +259,9 @@ export const SignInForm = () => {
 
                   <div>Google</div>
                 </Button>
+                {/* No server-side GitHub flow exists yet — leaving the button
+                    live in API mode would promise something that cannot work. */}
+                {!IS_API_AUTH && (
                 <Button
                   variant="outline"
                   className={cn("flex", "items-center", "gap-2")}
@@ -259,7 +284,16 @@ export const SignInForm = () => {
                   </svg>
                   <div>GitHub</div>
                 </Button>
+                )}
               </div>
+
+              {IS_API_AUTH && !checkingProviders && !googleEnabled && (
+                <p className={cn("text-xs", "text-muted-foreground")}>
+                  Google sign-in is not configured on the server yet — set{" "}
+                  <code>GOOGLE_CLIENT_ID</code> and{" "}
+                  <code>GOOGLE_CLIENT_SECRET</code> in <code>server/.env</code>.
+                </p>
+              )}
             </div>
           </form>
         </CardContent>

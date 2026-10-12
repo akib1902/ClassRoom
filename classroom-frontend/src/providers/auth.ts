@@ -1,16 +1,35 @@
 import type { AuthProvider } from "@refinedev/core";
 
+import { AUTH_API_URL, IS_API_AUTH } from "./constants";
+import {
+  AuthApiError,
+  clearApiSession,
+  ensureSession,
+  loginWithPassword,
+  logoutSession,
+  readCachedProfile,
+  registerAccount,
+  startGoogleSignIn,
+  type AuthRole,
+} from "./api-auth";
+
 /**
- * Mock auth provider (README F1 is Phase 2 — JWT + roles on the backend).
- * It keeps the three auth pages fully usable on a local device: any email and
- * password signs in, a demo session is persisted to localStorage so the header
- * shows an identity, and logout clears it.
+ * Two auth providers behind one export.
+ *
+ * - `mock` (default): offline demo — any credentials sign in and a fake session
+ *   is kept in localStorage (README §9.2). Zero configuration, no backend.
+ * - `api` (`VITE_AUTH_MODE=api`): the real thing. Sign-in goes through the
+ *   Express server in `server/`, which owns Google OAuth, JWT sessions and the
+ *   authoritative role. Nothing about the session is client-decided: the role
+ *   picker in the forms is hidden and ignored, and every protected route
+ *   re-validates against the server.
  */
+
 const SESSION_KEY = "classroom.mock.session";
 
-type Role = "admin" | "instructor" | "student";
+type Role = AuthRole;
 
-type Session = {
+type MockSession = {
   id: string;
   email: string;
   firstName: string;
@@ -19,7 +38,9 @@ type Session = {
   role: Role;
 };
 
-const nameFromEmail = (email: string): Omit<Session, "id" | "email" | "role"> => {
+/* ------------------------------ demo provider ---------------------------- */
+
+const nameFromEmail = (email: string): Omit<MockSession, "id" | "email" | "role"> => {
   const raw = email
     .split("@")[0]
     .replace(/[._-]+/g, " ")
@@ -48,7 +69,7 @@ const buildSession = (
   email: string,
   providerName?: string,
   role?: Role
-): Session => {
+): MockSession => {
   if (providerName) {
     return {
       id: "demo",
@@ -68,34 +89,24 @@ const buildSession = (
   };
 };
 
-const readSession = (): Session | null => {
+const readMockSession = (): MockSession | null => {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    return raw ? (JSON.parse(raw) as MockSession) : null;
   } catch {
     return null;
   }
 };
 
-const writeSession = (session: Session) => {
+const writeMockSession = (session: MockSession) => {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 };
 
-const clearSession = () => {
+const clearMockSession = () => {
   localStorage.removeItem(SESSION_KEY);
 };
 
-/**
- * Role of the current demo session — used by the mock data provider to
- * enforce the PRD F9–F11 permission matrix (403 for insufficient roles).
- */
-export const getCurrentRole = (): Role => readSession()?.role ?? "student";
-
-/** Display name for `createdBy` / `uploadedBy` fields on new records. */
-export const getCurrentUserName = (): string =>
-  readSession()?.fullName ?? buildSession("demo@classroom.local").fullName;
-
-export const authProvider: AuthProvider = {
+const mockAuthProvider: AuthProvider = {
   login: async ({
     email,
     providerName,
@@ -106,7 +117,7 @@ export const authProvider: AuthProvider = {
     role?: Role;
   }) => {
     const session = buildSession(email ?? "", providerName, role);
-    writeSession(session);
+    writeMockSession(session);
 
     return {
       success: true,
@@ -121,7 +132,7 @@ export const authProvider: AuthProvider = {
 
   register: async ({ email, role }: { email?: string; role?: Role }) => {
     const session = buildSession(email ?? "", undefined, role);
-    writeSession(session);
+    writeMockSession(session);
 
     return {
       success: true,
@@ -135,7 +146,7 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    clearSession();
+    clearMockSession();
 
     return {
       success: true,
@@ -147,13 +158,15 @@ export const authProvider: AuthProvider = {
     };
   },
 
-  check: async () => ({
-    authenticated: true,
-  }),
+  check: async () =>
+    readMockSession()
+      ? { authenticated: true }
+      : { authenticated: false, redirectTo: "/login" },
 
-  getIdentity: async () => readSession() ?? buildSession("demo@classroom.local"),
+  getIdentity: async () => readMockSession() ?? buildSession("demo@classroom.local"),
 
-  getPermissions: async () => (readSession() ?? buildSession("demo@classroom.local")).role,
+  getPermissions: async () =>
+    (readMockSession() ?? buildSession("demo@classroom.local")).role,
 
   forgotPassword: async () => ({
     success: true,
@@ -173,4 +186,210 @@ export const authProvider: AuthProvider = {
   }),
 
   onError: async () => ({}),
+};
+
+/* ------------------------------ API provider ----------------------------- */
+
+const apiAuthProvider: AuthProvider = {
+  login: async ({ email, password, providerName }: {
+    email?: string;
+    password?: string;
+    providerName?: string;
+  }) => {
+    // Google is a full-page redirect (the server holds the PKCE verifier and the
+    // client secret), so this promise never resolves — the browser leaves.
+    if (providerName === "google") {
+      startGoogleSignIn("signin");
+      return { success: true };
+    }
+
+    if (providerName) {
+      return {
+        success: false,
+        error: {
+          name: "ProviderUnavailable",
+          message: `Sign in with ${providerName} is not available.`,
+        },
+      };
+    }
+
+    try {
+      const identity = await loginWithPassword(email ?? "", password ?? "");
+      return {
+        success: true,
+        redirectTo: "/",
+        successNotification: {
+          type: "success",
+          message: `Welcome back, ${identity.fullName}!`,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          name: "LoginError",
+          message:
+            error instanceof AuthApiError
+              ? error.message
+              : "Could not reach the sign-in service. Is the API running?",
+        },
+      };
+    }
+  },
+
+  register: async ({ name, email, password, providerName }: {
+    name?: string;
+    email?: string;
+    password?: string;
+    providerName?: string;
+  }) => {
+    if (providerName === "google") {
+      startGoogleSignIn("signup");
+      return { success: true };
+    }
+
+    try {
+      // The account starts as `student`; elevated roles are granted server-side
+      // (see ADMIN_EMAILS), never by the sign-up form.
+      const identity = await registerAccount({
+        name: name?.trim() || (email ?? "").split("@")[0] || "Student",
+        email: email ?? "",
+        password: password ?? "",
+      });
+
+      return {
+        success: true,
+        redirectTo: "/",
+        successNotification: {
+          type: "success",
+          message: "Account created",
+          description: `Signed in as ${identity.email}.`,
+        },
+      };
+    } catch (error) {
+      if (error instanceof AuthApiError) {
+        // Surface the first field error ("Password must be at least 12
+        // characters.") rather than the generic "correct the highlighted
+        // fields" summary, so the toast is actionable.
+        const detail = error.errors ? Object.values(error.errors)[0] : undefined;
+        return {
+          success: false,
+          error: {
+            name: "RegisterError",
+            message: detail ?? error.message,
+          },
+        };
+      }
+      return {
+        success: false,
+        error: {
+          name: "RegisterError",
+          message: "Could not reach the sign-up service. Is the API running?",
+        },
+      };
+    }
+  },
+
+  logout: async () => {
+    await logoutSession();
+    return {
+      success: true,
+      redirectTo: "/login",
+      successNotification: { type: "success", message: "Signed out" },
+    };
+  },
+
+  /**
+   * Runs on every protected route. It always validates against the server, so a
+   * cached profile or an expired access token cannot keep a route open.
+   */
+  check: async () => {
+    const identity = await ensureSession();
+    return identity
+      ? { authenticated: true }
+      : { authenticated: false, redirectTo: "/login" };
+  },
+
+  getIdentity: async () => (await ensureSession()) ?? undefined,
+
+  getPermissions: async () => (await ensureSession())?.role ?? undefined,
+
+  forgotPassword: async ({ email }: { email?: string }) => {
+    try {
+      const response = await fetch(`${AUTH_API_URL}/auth/forgot-password`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email ?? "" }),
+      });
+
+      if (response.ok) {
+        // Deliberately identical for known and unknown addresses — the API is
+        // the one that must avoid revealing whether an account exists.
+        return {
+          success: true,
+          successNotification: {
+            type: "success",
+            message: "Check your inbox",
+            description:
+              "If that address has an account, reset instructions are on the way.",
+          },
+        };
+      }
+
+      // The endpoint is not implemented yet, so say so instead of pretending an
+      // email was sent.
+      const message =
+        response.status === 404 || response.status === 501
+          ? "Password resets are not available yet — sign in with Google, or ask an admin to reset your password."
+          : "Could not send reset instructions. Please try again.";
+
+      return { success: false, error: { name: "ResetFailed", message } };
+    } catch {
+      return {
+        success: false,
+        error: {
+          name: "ResetFailed",
+          message: "Could not reach the auth service. Is the API running?",
+        },
+      };
+    }
+  },
+
+  updatePassword: async () => ({
+    success: true,
+    successNotification: { type: "success", message: "Password updated" },
+  }),
+
+  /** A 401 from any API call ends the session and returns to sign-in. */
+  onError: async (error) => {
+    const status = (error as { statusCode?: number } | undefined)?.statusCode;
+    if (status === 401) {
+      clearApiSession();
+      return { logout: true, redirectTo: "/login" };
+    }
+    return {};
+  },
+};
+
+export const authProvider: AuthProvider = IS_API_AUTH ? apiAuthProvider : mockAuthProvider;
+
+/* --------------------------------- helpers -------------------------------- */
+
+/**
+ * Role of the current session — used by the mock data provider to enforce the
+ * PRD F9–F11 permission matrix. In API mode it is the role the server assigned
+ * and the data layer is expected to enforce it server-side too.
+ */
+export const getCurrentRole = (): Role =>
+  IS_API_AUTH
+    ? readCachedProfile()?.role ?? "student"
+    : readMockSession()?.role ?? "student";
+
+/** Display name for `createdBy` / `uploadedBy` fields on new records. */
+export const getCurrentUserName = (): string => {
+  if (IS_API_AUTH) {
+    return readCachedProfile()?.fullName ?? "Signed-in user";
+  }
+  return readMockSession()?.fullName ?? buildSession("demo@classroom.local").fullName;
 };

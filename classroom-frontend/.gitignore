@@ -17,6 +17,15 @@ dist-ssr
 .env
 .env.local
 
+# Server (server/) runtime artifacts — never commit the API secrets
+server/.env
+server/.env.local
+server/*.db
+server/*.db-wal
+server/*.db-shm
+server/install.log
+server/test.log
+
 # Editor directories and files
 
 .vscode/_
