@@ -91,7 +91,10 @@
     "dev": "refine dev",
     "build": "tsc && refine build",
     "start": "refine start",
-    "refine": "refine"
+    "refine": "refine",
+    "server": "npm --prefix server run dev",
+    "server:start": "npm --prefix server start",
+    "server:test": "npm --prefix server test"
   },
   "browserslist": {
     "production": [

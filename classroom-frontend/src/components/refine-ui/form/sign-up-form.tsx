@@ -23,9 +23,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { InputPassword } from "@/components/refine-ui/form/input-password";
+import { useGoogleAvailability } from "@/hooks/use-google-availability";
+import { IS_API_AUTH } from "@/providers/constants";
 import { cn } from "@/lib/utils";
 
 export const SignUpForm = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,6 +39,7 @@ export const SignUpForm = () => {
   const Link = useLink();
 
   const { mutate: register } = useRegister();
+  const { googleEnabled, checking: checkingProviders } = useGoogleAvailability();
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,16 +55,21 @@ export const SignUpForm = () => {
       return;
     }
 
-    register({
-      email,
-      password,
-      role,
-    });
+    register(
+      IS_API_AUTH
+        ? { name, email, password }
+        : {
+            email,
+            password,
+            role,
+          }
+    );
   };
 
   const handleSignUpWithGoogle = () => {
     register({
       providerName: "google",
+      // Ignored by the API provider — roles are assigned server-side.
       role,
     });
   };
@@ -112,6 +121,23 @@ export const SignUpForm = () => {
 
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignUp}>
+            {/* The API stores a display name on the account, so it is asked for
+                up front instead of being derived from the email address. */}
+            {IS_API_AUTH && (
+              <div className={cn("flex", "flex-col", "gap-2", "mb-6")}>
+                <Label htmlFor="name">Full name</Label>
+                <Input
+                  id="name"
+                  autoComplete="name"
+                  placeholder=""
+                  required
+                  minLength={2}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
+
             <div className={cn("flex", "flex-col", "gap-2")}>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -133,7 +159,14 @@ export const SignUpForm = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={IS_API_AUTH ? 12 : undefined}
+                autoComplete="new-password"
               />
+              {IS_API_AUTH && (
+                <p className={cn("text-xs", "text-muted-foreground")}>
+                  At least 12 characters, including a letter and a number.
+                </p>
+              )}
             </div>
 
             <div
@@ -148,6 +181,8 @@ export const SignUpForm = () => {
               />
             </div>
 
+            {/* Demo-only role selection — see the note in `sign-in-form.tsx`. */}
+            {!IS_API_AUTH && (
             <div className={cn("mt-6", "flex", "flex-col", "gap-2")}>
               <Label>I am signing up as</Label>
               <div className="grid w-full grid-cols-3 gap-2">
@@ -192,6 +227,7 @@ export const SignUpForm = () => {
                 </button>
               </div>
             </div>
+            )}
 
             <Button
               type="submit"
@@ -214,12 +250,26 @@ export const SignUpForm = () => {
             </div>
 
             <div className={cn("flex", "flex-col", "gap-4", "mt-6")}>
-              <div className={cn("grid grid-cols-2", "gap-6")}>
+              <div
+                className={cn(
+                  "grid",
+                  IS_API_AUTH ? "grid-cols-1" : "grid-cols-2",
+                  "gap-6"
+                )}
+              >
                 <Button
                   variant="outline"
                   className={cn("flex", "items-center", "gap-2")}
                   onClick={handleSignUpWithGoogle}
                   type="button"
+                  disabled={
+                    IS_API_AUTH && (checkingProviders || !googleEnabled)
+                  }
+                  title={
+                    IS_API_AUTH && !checkingProviders && !googleEnabled
+                      ? "Google sign-in is not configured on the server yet"
+                      : undefined
+                  }
                 >
                   <svg
                     width="21"
@@ -235,6 +285,8 @@ export const SignUpForm = () => {
                   </svg>
                   <div>Google</div>
                 </Button>
+                {/* No server-side GitHub flow exists yet (see sign-in-form). */}
+                {!IS_API_AUTH && (
                 <Button
                   variant="outline"
                   className={cn("flex", "items-center", "gap-2")}
@@ -257,7 +309,16 @@ export const SignUpForm = () => {
                   </svg>
                   <div>GitHub</div>
                 </Button>
+                )}
               </div>
+
+              {IS_API_AUTH && !checkingProviders && !googleEnabled && (
+                <p className={cn("text-xs", "text-muted-foreground")}>
+                  Google sign-up is not configured on the server yet — set{" "}
+                  <code>GOOGLE_CLIENT_ID</code> and{" "}
+                  <code>GOOGLE_CLIENT_SECRET</code> in <code>server/.env</code>.
+                </p>
+              )}
             </div>
           </form>
         </CardContent>

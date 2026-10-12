@@ -30,6 +30,7 @@ import NoticeCreate from "./pages/notices/create";
 import NoticeEdit from "./pages/notices/edit";
 import NoticesManage from "./pages/notices/manage";
 import { RequireRole } from "./components/refine-ui/auth/require-role";
+import { AuthUrlMarker } from "./components/refine-ui/auth/auth-url-marker";
 
 const Classroom3D = lazy(() => import("./pages/classroom-3d"));
 
@@ -170,6 +171,7 @@ function App() {
                 </Route>
               </Routes>
               <Toaster />
+              <AuthUrlMarker />
               <RefineKbar />
               <UnsavedChangesNotifier />
               <DocumentTitleHandler />
