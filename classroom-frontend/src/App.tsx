@@ -20,7 +20,7 @@ import { useNotificationProvider } from "./components/refine-ui/notification/use
 import { Toaster } from "./components/refine-ui/notification/toaster";
 import { ThemeProvider } from "./components/refine-ui/theme/theme-provider";
 import "./App.css";
-import { BookOpen, Box, Home, Megaphone } from "lucide-react";
+import { BookOpen, Box, Home, Megaphone, Orbit } from "lucide-react";
 import SubjectsList from "./pages/subjects/list";
 import SubjectCreate from "./pages/subjects/create";
 import SubjectEdit from "./pages/subjects/edit";
@@ -33,6 +33,7 @@ import { RequireRole } from "./components/refine-ui/auth/require-role";
 import { AuthUrlMarker } from "./components/refine-ui/auth/auth-url-marker";
 
 const Classroom3D = lazy(() => import("./pages/classroom-3d"));
+const Campus3D = lazy(() => import("./campus/campus-3d"));
 
 function App() {
   return (
@@ -55,6 +56,11 @@ function App() {
                 name: "dashboard",
                 list: "/",
                 meta: { label: "Dashboard" , icon: <Home />},
+              },
+              {
+                name: "campus",
+                list: "/campus",
+                meta: { label: "Campus 3D", icon: <Orbit /> },
               },
               {
                 name: "subjects",
@@ -81,6 +87,22 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route
+                  path="/campus"
+                  element={
+                    <Authenticated key="campus-route">
+                      <Suspense
+                        fallback={
+                          <div className="flex min-h-svh items-center justify-center bg-[#05070f] text-sm tracking-[0.2em] text-white/60 uppercase">
+                            Entering campus…
+                          </div>
+                        }
+                      >
+                        <Campus3D />
+                      </Suspense>
+                    </Authenticated>
+                  }
+                />
                 <Route element={
                   <Authenticated key="protected-routes">
                     <Layout>
