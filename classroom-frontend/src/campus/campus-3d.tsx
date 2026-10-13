@@ -190,6 +190,7 @@ export default function Campus3D() {
       className="campus-root"
       data-role={role ?? "loading"}
       data-stage={theme?.stage ?? "loading"}
+      style={{ ["--campus-accent" as string]: theme?.accentCss }}
     >
       <div ref={mountRef} className="campus-canvas" aria-hidden="true" />
 
@@ -210,7 +211,7 @@ export default function Campus3D() {
           dimmed={Boolean(panel)}
           onSelect={selectDestination}
           onExit={() => vanish("/", "Leaving the campus")}
-          onRotate={(delta) => engineRef.current?.rotateBy(delta)}
+          onHoverItem={(id) => engineRef.current?.setHighlight(id)}
         />
       )}
 

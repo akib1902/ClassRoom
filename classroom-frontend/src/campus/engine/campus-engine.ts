@@ -247,6 +247,8 @@ export class CampusEngine {
   private dragged = false;
   private pointerDown = false;
   private hoveredId: string | null = null;
+  /** Set by the HUD rail so hovering a list row lights the matching card. */
+  private highlightId: string | null = null;
   private focusId: string | null = null;
   private focusBlend = 0;
   private fov = 58;
@@ -659,6 +661,11 @@ export class CampusEngine {
     this.yaw += delta;
   }
 
+  /** Mirror the HUD rail's hover/focus state onto the matching 3D card. */
+  setHighlight(id: string | null) {
+    this.highlightId = id;
+  }
+
   private pick(): NodeRecord | null {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hit = this.raycaster.intersectObjects(
@@ -762,7 +769,7 @@ export class CampusEngine {
     // before any render — keep the graph current so picking is always exact)
     this.scene.updateMatrixWorld();
     const hovered = this.pick();
-    const hoveredId = hovered?.spec.id ?? null;
+    const hoveredId = hovered?.spec.id ?? this.highlightId;
     if (hoveredId !== this.hoveredId) {
       this.hoveredId = hoveredId;
       this.opts.onHover(hoveredId);

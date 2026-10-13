@@ -25,7 +25,7 @@ export function CampusHud({
   dimmed,
   onSelect,
   onExit,
-  onRotate,
+  onHoverItem,
 }: {
   theme: CampusTheme;
   role: CampusRole;
@@ -35,7 +35,7 @@ export function CampusHud({
   dimmed: boolean;
   onSelect: (destination: Destination) => void;
   onExit: () => void;
-  onRotate: (delta: number) => void;
+  onHoverItem: (id: string | null) => void;
 }) {
   return (
     <div
@@ -83,7 +83,10 @@ export function CampusHud({
                 <button
                   type="button"
                   onClick={() => onSelect(destination)}
-                  onMouseEnter={() => onRotate(0)}
+                  onMouseEnter={() => onHoverItem(destination.id)}
+                  onMouseLeave={() => onHoverItem(null)}
+                  onFocus={() => onHoverItem(destination.id)}
+                  onBlur={() => onHoverItem(null)}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
                     "campus-rail-item",
